@@ -1,0 +1,35 @@
+name: lifting_lowdim
+
+obs_dim: 23 # 23-dimensional observation for collaborative lifting
+action_dim: 10 # 10-dimensional action (4 robot + 6 human)
+keypoint_dim: 0
+obs_eef_target: True
+
+env_runner:
+  _target_: diffusion_policy.env_runner.lifting_lowdim_runner.LiftingLowdimRunner
+  n_train: 6
+  n_train_vis: 2
+  train_start_seed: 0
+  n_test: 50
+  n_test_vis: 15
+  test_start_seed: 100000
+  max_steps: 1000
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  fps: 20
+  past_action: ${human_act_as_cond}
+  abs_action: False
+  obs_eef_target: ${task.obs_eef_target}
+  n_envs: null
+
+dataset:
+  _target_: diffusion_policy.dataset.lifting_lowdim_dataset.LiftingLowdimDataset
+  zarr_path: ../flow_copolicy/data/table/collaborative_lifting_sac_350.zarr
+  horizon: ${horizon}
+  pad_before: ${eval:'${n_obs_steps}-1'}
+  pad_after: ${eval:'${n_action_steps}-1'}
+  obs_eef_target: ${task.obs_eef_target}
+  human_act_as_cond: ${human_act_as_cond}
+  use_manual_normalizer: False
+  seed: 42
+  val_ratio: 0.02
