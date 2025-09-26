@@ -1,0 +1,102 @@
+defaults:
+  - _self_
+  - task: table_lowdim
+
+name: train_flow_matching_transformer_lowdim
+_target_: flow_policy.workspace.train_flow_matching_transformer_lowdim_workspace.TrainFlowMatchingTransformerLowdimWorkspace
+
+obs_dim: ${task.obs_dim}
+human_act_as_cond: False  # 不使用人类条件 - 确保不使用人类动作作为条件
+action_dim: ${task.action_dim}
+task_name: ${task.name}
+exp_name: "default"
+
+horizon: 12 # prediction horizon, T
+n_obs_steps: 3 # observation horizon, To, is subset of T (i.e. To < T)
+n_action_steps: 8 # num actions executed - 从1改为8，与diffusion policy保持一致
+n_latency_steps: 0
+keypoint_visible_rate: 1.0
+obs_as_cond: True
+pred_action_steps_only: False
+
+policy:
+  _target_: flow_policy.policy.flow_matching_transformer_lowdim_policy.FlowMatchingTransformerLowdimPolicy
+
+  model:
+    _target_: flow_policy.model.diffusion.flow_matching_transformer.FlowMatchingTransformer
+    input_dim: 4  # action_dim when obs_as_cond=True
+    output_dim: 4  # same as input_dim
+    horizon: ${horizon}
+    n_obs_steps: ${n_obs_steps}
+    cond_dim: 18  # obs_dim when obs_as_cond=True
+
+    n_layer: 8
+    n_head: 4
+    n_emb: 256
+    p_drop_emb: 0.1   # 增加 embedding dropout
+    p_drop_attn: 0.3  # 增加 attention dropout
+
+    causal_attn: True
+    time_as_cond: True
+    obs_as_cond: ${obs_as_cond}
+    human_act_as_cond: ${human_act_as_cond}
+    n_cond_layers: 0
+  
+  horizon: ${horizon}
+  obs_dim: ${obs_dim}
+  action_dim: ${action_dim}
+  n_action_steps: ${n_action_steps}
+  n_obs_steps: ${n_obs_steps}
+  num_inference_steps: 50  # 增加推理步数以提高生成质量
+  obs_as_cond: ${obs_as_cond}
+  human_act_as_cond: ${human_act_as_cond}
+  pred_action_steps_only: ${pred_action_steps_only}
+
+task:
+  _target_: flow_policy.task.table_lowdim_task.TableLowdimTask
+  dataset: ${task.dataset}
+  env_runner: ${task.env_runner}
+
+dataloader:
+  batch_size: 256
+  num_workers: 1
+  shuffle: True
+  pin_memory: True
+  persistent_workers: False
+
+val_dataloader:
+  batch_size: 256
+  num_workers: 1
+  shuffle: False
+  pin_memory: True
+  persistent_workers: False
+
+training:
+  device: "cuda"
+  log: true
+  n_epochs: 1500      # 降低最大训练轮数
+  lr: 5e-6            # 降低学习率以提高稳定性
+  weight_decay: 1.0e-2  # 增加正则化防止过拟合
+  betas: [0.9, 0.999]
+  sample_every: 10
+  checkpoint_every: 50
+  eval_every: 5       # 更频繁验证
+  log_every: 100
+  num_warmup_steps: 5000  # 增加warmup步数
+  scheduler_type: "cosine"
+  rollout_every: 50   # 或其他正整数
+  seed: 42            # 添加 seed 配置
+
+logging:
+  project: "flow_matching_table"
+  tags: ["flow_matching", "table_lowdim", "no_human_cond"]
+  notes: "Flow Matching Transformer for table carrying without human condition"
+
+checkpoint:
+  topk:
+    monitor_key: val_loss  # 监控验证损失
+    mode: min              # 最小化验证损失
+    k: 5                   # 保存前5个最好的
+    format_str: 'epoch={epoch:04d}-val_loss={val_loss:.6f}.ckpt'
+  save_last_ckpt: false
+  save_last_snapshot: false 

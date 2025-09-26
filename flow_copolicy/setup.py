@@ -1,0 +1,23 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="flow_policy",
+    version="1.0.0",
+    description="Flow Matching based robot policy learning framework",
+    author="IRoMan Team",
+    packages=find_packages(),
+    install_requires=[
+        "torch>=1.9.0",
+        "torchvision>=0.10.0",
+        "numpy>=1.21.0",
+        "omegaconf>=2.1.0",
+        "hydra-core>=1.1.0",
+        "wandb>=0.12.0",
+        "einops>=0.4.0",
+        "gym>=0.21.0",
+        "opencv-python>=4.5.0",
+        "matplotlib>=3.3.0",
+        "tqdm>=4.62.0",
+    ],
+    python_requires=">=3.8",
+) 

@@ -1,0 +1,48 @@
+name: collaborative_lifting_lowdim
+
+# 协作举重任务配置
+# 基于Human-Robot Gym的协作举重环境
+obs_dim: 23 # 23维观察向量
+# 原始观察数据 (机器人状态 + 人机相对位置 + 木板状态)
+action_dim: 10 # 10维动作向量
+# 前4维: 机器人动作 (x,y,z位置增量 + 夹爪动作)
+# 后6维: 人类动作 (左手3维 + 右手3维向量变化率)
+keypoint_dim: 0
+obs_eef_target: True
+
+env_runner:
+  _target_: flow_policy.env_runner.table_lowdim_runner.TableLowdimRunner
+  # 协作举重任务环境参数
+  n_train: 6
+  n_train_vis: 2
+  train_start_seed: 0
+  n_test: 50
+  n_test_vis: 15
+  test_start_seed: 100000
+  max_steps: 1000  # 对应Human-Robot Gym的horizon=1000
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  fps: 10  # 对应Human-Robot Gym的control_freq=10
+  past_action: ${human_act_as_cond}
+  abs_action: False
+  obs_eef_target: ${task.obs_eef_target}
+  n_envs: 4
+  # 协作举重任务专用地图配置
+  map_config: /home/ubuntu/IRoMan/flow_copolicy/flow_policy/env/cooperative_transport/gym_table/config/maps/collaborative_lifting.yml
+
+dataset:
+  _target_: flow_policy.dataset.table_lowdim_dataset.TableLowdimDataset
+  # 协作举重SAC数据集路径
+  zarr_path: data/table/collaborative_lifting_sac_350.zarr
+  horizon: ${horizon}
+  pad_before: 2
+  pad_after: 0
+  obs_eef_target: ${task.obs_eef_target}
+  human_act_as_cond: ${human_act_as_cond}
+  use_manual_normalizer: False
+  seed: 42
+  val_ratio: 0.2
+  # 协作举重任务特定配置
+  obs_key: obs  # 23维观察数据
+  action_key: action  # 10维动作数据
+  past_action_key: past_action  # 10维过去动作数据
