@@ -1,0 +1,111 @@
+name: train_flow_matching_collaborative_lifting
+obs_dim: 37  # 23维原始obs + 14维地图obs
+action_dim: 10  # 4维机器人动作 + 6维人类动作
+human_act_as_cond: True  # 使用人类条件
+task_name: collaborative_lifting
+exp_name: collaborative_lifting_sac_350
+
+horizon: 12  # 预测时域
+n_obs_steps: 3  # 观察时域
+n_action_steps: 8  # 执行动作步数
+n_latency_steps: 0
+keypoint_visible_rate: 1.0
+obs_as_cond: True
+pred_action_steps_only: False
+
+policy:
+  model:
+    input_dim: 10  # action_dim
+    output_dim: 10  # 同input_dim
+    horizon: 12
+    n_obs_steps: 3
+    cond_dim: 37  # obs_dim
+    
+    n_layer: 8
+    n_head: 4
+    n_emb: 256
+    p_drop_emb: 0.1
+    p_drop_attn: 0.3
+    
+    causal_attn: True
+    time_as_cond: True
+    obs_as_cond: True
+    human_act_as_cond: True
+    n_cond_layers: 0
+    
+    to: "cuda"  # 设备配置
+  
+  horizon: 12
+  obs_dim: 37
+  action_dim: 10
+  n_action_steps: 8
+  n_obs_steps: 3
+  num_inference_steps: 50
+  obs_as_cond: True
+  human_act_as_cond: True
+  pred_action_steps_only: False
+
+task:
+  name: collaborative_lifting
+  obs_dim: 37
+  action_dim: 10
+  keypoint_dim: 0
+  obs_eef_target: True
+  
+  dataset:
+    _target_: flow_policy.dataset.table_lowdim_dataset.TableLowdimDataset
+    zarr_path: data/table/collaborative_lifting_sac_350.zarr
+    horizon: 12
+    pad_before: 2
+    pad_after: 0
+    obs_key: obs
+    action_key: action
+    past_action_key: past_action
+    obs_eef_target: True
+    human_act_as_cond: True
+    use_manual_normalizer: False
+    seed: 42
+    val_ratio: 0.1  # 10%用于验证
+
+dataloader:
+  batch_size: 128  # 减小batch size以适应更大的数据维度
+  num_workers: 4
+  shuffle: True
+  pin_memory: True
+  persistent_workers: True
+
+val_dataloader:
+  batch_size: 128
+  num_workers: 4
+  shuffle: False
+  pin_memory: True
+  persistent_workers: True
+
+training:
+  device: cuda
+  log: true
+  n_epochs: 1000
+  lr: 1e-4
+  weight_decay: 1e-3
+  betas: [0.9, 0.999]
+  sample_every: 10
+  checkpoint_every: 50
+  eval_every: 10
+  log_every: 50
+  num_warmup_steps: 1000
+  scheduler_type: cosine
+  seed: 42
+
+logging:
+  project: flow_matching_collaborative_lifting
+  tags: [flow_matching, collaborative_lifting, human_cond]
+  notes: Flow Matching Transformer for collaborative lifting with human condition
+
+checkpoint:
+  topk:
+    monitor_key: val_loss
+    mode: min
+    k: 5
+    format_str: epoch={epoch:04d}-val_loss={val_loss:.6f}.ckpt
+  save_last_ckpt: true
+  save_last_snapshot: false
