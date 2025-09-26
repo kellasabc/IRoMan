@@ -72,6 +72,10 @@ Training data is generated from SAC models trained on the [human-robot-gym](http
 
 ## Dataset and Model Locations
 
+### Download Pre-trained Models and Datasets
+All datasets and pre-trained models are available for download:
+- **Download Link**: [IRoMan.zip](https://www.dropbox.com/scl/fi/7x19y6sf7bmaw0a1sodkk/IRoMan.zip?rlkey=1j6njquxoac4s58q047e1x606&st=f3qumjdh&dl=0)
+
 ### Table Carrying Task
 - **Dataset**: `diffusion_copolicy/data/table/`
 - **Diffusion Models**: `table-carrying-ai/trained_models/diffusion/`
