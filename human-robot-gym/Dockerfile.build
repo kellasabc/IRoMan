@@ -1,0 +1,82 @@
+FROM continuumio/miniconda3
+
+# Avoid warnings by switching to noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
+# setup environment
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+## Install apt packages
+RUN apt-get update --fix-missing \
+  && apt-get install --no-install-recommends -y \
+    tzdata \
+    dirmngr \
+    gnupg2 \
+    psmisc \
+    python3.6 \
+    python3-pip \
+    python-is-python3 \
+    mpich \
+    python3-tk \
+    python3-dev \
+    libosmesa6-dev \
+    libgl1-mesa-glx \
+    libglfw3 \
+    apt-utils dialog 2>&1 \
+    git \
+    iproute2 \
+    procps \
+    lsb-release \
+    nano \
+    libopenmpi-dev \
+    swig \
+    wget \
+    ca-certificates \
+    curl \
+    git \
+    bzip2 \
+    sudo \
+    cmake \
+    build-essential \
+    tar \
+    unzip \
+    curl \
+    g++ \
+    gcc-9 \
+    clang \
+    libgtest-dev \
+    libgmock-dev \
+    patchelf \
+    ssh \
+    curl \
+    liboctomap-dev \
+    python3-sphinx
+
+# Create the environment:
+COPY environment.yml .
+RUN conda env create -f environment.yml
+
+# Clean up
+RUN apt-get autoremove -y \
+    && apt-get autoremove \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to dialog for any ad-hoc use of apt-get
+ENV DEBIAN_FRONTEND=dialog
+
+COPY .bashrc_docker /root/.bashrc
+RUN echo "conda activate hrgym" >> /root/.bashrc
+
+# Get Eigen3.4
+RUN mkdir /usr/include/eigen3/
+WORKDIR /usr/include/eigen3/
+RUN curl -LJO https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2
+RUN tar -xvf eigen-3.4.0.tar.bz2
+RUN rm eigen-3.4.0.tar.bz2
+RUN echo export CMAKE_PREFIX_PATH="/usr/include/eigen3/eigen-3.4.0" >> /root/.bashrc
+RUN echo export EIGEN3_INCLUDE_DIR="/usr/include/eigen3/eigen-3.4.0" >> /root/.bashrc
+WORKDIR /usr/include/eigen3/eigen-3.4.0/
+RUN mkdir build
+WORKDIR /usr/include/eigen3/eigen-3.4.0/build
+RUN cmake .. && make install
+WORKDIR /

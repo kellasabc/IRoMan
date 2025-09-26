@@ -1,0 +1,31 @@
+defaults:
+  - human_env
+  - _self_
+
+env_id: ReachHuman
+table_full_size:
+  - 1.5
+  - 2.0
+  - 0.05
+table_friction:
+  - 1.5
+  - 2.0
+  - 0.05
+goal_dist: 0.1
+n_goals_sampled_per_100_steps: 20
+object_placement_initializer: null
+obstacle_placement_initializer: null
+human_animation_names:
+  - CMU/62_01
+  - CMU/62_03
+  - CMU/62_04
+  - CMU/62_07
+  - CMU/62_09
+  - CMU/62_10
+  - CMU/62_12
+  - CMU/62_13
+  - CMU/62_14
+  - CMU/62_15
+  - CMU/62_16
+  - CMU/62_18
+  - CMU/62_19

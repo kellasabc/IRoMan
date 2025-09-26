@@ -1,0 +1,149 @@
+# This file is a template, and might need editing before it works on your project.
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+
+# This is a sample GitLab CI/CD configuration file that should run without any modifications.
+# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
+# it uses echo commands to simulate the pipeline execution.
+#
+# A pipeline is composed of independent jobs that run scripts, grouped into stages.
+# Stages run in sequential order, but jobs within stages run in parallel.
+#
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
+image: python:latest 
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_UPDATE_FLAGS: --remote
+  # IMAGE_BASE_TAG: ${CI_REGISTRY_IMAGE}/base:${CI_COMMIT_REF_SLUG}
+  # GIT_CLONE_PATH: "$CI_BUILDS_DIR/$CI_JOB_STAGE/$CI_PROJECT_NAME"
+  DOC_SUBPAGE: docs/
+  DOC_OUT_DIR: public/${DOC_SUBPAGE}
+  ARTIFACT_DOWNLOAD_ATTEMPTS: 3
+  EXECUTOR_JOB_SECTION_ATTEMPTS: 3
+  GET_SOURCES_ATTEMPTS: 3
+  RESTORE_CACHE_ATTEMPTS: 3
+  
+cache:
+  paths:
+    - .cache/pip
+
+workflow:
+  # Run the pipeline as branch pipeline when no merge request is open or as merge pipeline when a merge request is open, but not both
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+stages:          # List of stages for jobs, and their order of execution
+  - linting
+  - build
+  - test  # this name cannot be changed as long as default gitlab analyzers are included
+  - deploy
+
+lint-test-job:   # This job also runs in the test stage.
+  tags: [linting]
+  stage: linting    # It can run at the same time as unit-test-job (in parallel).
+  script:
+    - pip3 install flake8 pydocstyle
+    - flake8
+    - pydocstyle
+    - echo "success"
+
+
+doc:   # This job also runs in the test stage.
+  tags: [linting]
+  stage: linting    # It can run at the same time as unit-test-job (in parallel).
+  script:
+    - apt-get update
+    - apt install python3-sphinx graphviz -y
+    - pip3 install sphinx_rtd_theme sphinx-autoapi graphviz
+    - mkdir -p $DOC_SUBPAGE  # One of these should always be set
+    - cd $DOC_SUBPAGE
+    - make html
+    - echo "The documentation is now available within the job's artifacts ($DOC_SUBPAGE/build/html)"
+  artifacts:
+    name: "doc_$CI_COMMIT_BRANCH"
+    paths:
+      - $DOC_SUBPAGE
+
+pages:
+  tags: [linting]
+  stage: linting
+  needs:
+    - job: doc  # Wait for doc job
+      artifacts: true  # and get artifacts
+  only:
+    - main
+  script:
+    - ls $DOC_SUBPAGE/build/html/
+    - mkdir -p $DOC_OUT_DIR
+    - cp -r $DOC_SUBPAGE/build/html/* $DOC_OUT_DIR  # Move to expected public folder; should be there from doc stage
+    - echo "The documentation is now available at $CI_PAGES_URL/$DOC_SUBPAGE"
+  artifacts: # Return the altered public folder
+    name: "doc_$CI_COMMIT_BRANCH"
+    paths:
+      - public
+
+build dockerimage:
+  image: docker:19.03.12
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  stage: build
+  tags: [docker]
+  services:
+    - docker:19.03.12-dind
+  before_script:
+      - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t ${CI_REGISTRY_IMAGE} -f Dockerfile.build .
+    - docker push ${CI_REGISTRY_IMAGE}
+  rules:
+    - changes:
+      - Dockerfile.build
+      - requirements.txt
+      - environment.yml
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+
+build:
+  image:
+    name: ${CI_REGISTRY_IMAGE}
+  stage: build
+  needs:
+    - job: build dockerimage
+      optional: true
+  tags: [python, unittest]
+  script:
+    - pwd
+    - source /root/.bashrc
+    - export CONDA_PREFIX=/opt/conda/envs/hrgym/
+    - cd human_robot_gym/controllers/failsafe_controller/sara-shield/
+    - export EIGEN3_INCLUDE_DIR=/usr/include/eigen3/eigen-3.4.0
+    - echo $EIGEN3_INCLUDE_DIR
+    - sudo -E /opt/conda/envs/hrgym/bin/python setup.py install
+    - /opt/conda/envs/hrgym/bin/python -c "import safety_shield_py"
+    - cd /builds/cps-rl/human-robot-gym
+    - /opt/conda/envs/hrgym/bin/pip install .
+    # There is a mysterious invalid chunk size error in the pipeline.
+    # - /opt/conda/envs/hrgym/bin/python -c "import human_robot_gym"
+
+# We build the packages again because they don't take too much time and artifacts are complicated.
+test safety shield:
+  image:
+    name: ${CI_REGISTRY_IMAGE}
+  stage: test
+  tags: [unittest]
+  script:
+    - source /root/.bashrc
+    - export CONDA_PREFIX=/opt/conda/envs/hrgym/
+    - cd human_robot_gym/controllers/failsafe_controller/sara-shield/
+    - export EIGEN3_INCLUDE_DIR=/usr/include/eigen3/eigen-3.4.0
+    - echo $EIGEN3_INCLUDE_DIR
+    - sudo -E /opt/conda/envs/hrgym/bin/python setup.py install
+    - cd safety_shield/tests
+    - /opt/conda/envs/hrgym/bin/python -m pytest

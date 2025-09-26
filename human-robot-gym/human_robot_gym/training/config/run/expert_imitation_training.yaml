@@ -1,0 +1,6 @@
+defaults:
+  - default_training
+  - _self_
+
+expert_obs_keys: ${expert.obs_keys}
+dataset_name: dataset

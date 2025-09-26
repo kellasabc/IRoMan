@@ -1,0 +1,83 @@
+defaults:
+  - robot: schunk
+  - environment: collaborative_lifting_cart
+  - wrappers: safe_ik
+  - expert: collaborative_lifting_cart
+  - run: expert_imitation_training
+  - consistent_seeding
+  - _self_
+  - eval
+
+# 环境配置 - 针对SAC数据集生成优化
+environment:
+  verbose: false
+  done_at_success: true
+  # 增加episode长度以获得更多数据
+  horizon: 3000
+  # 使用更多的人类动画以获得数据多样性
+  human_animation_names: 
+    - CollaborativeLifting/2
+    - CollaborativeLifting/3
+    - CollaborativeLifting/4
+    - CollaborativeLifting/5
+    - CollaborativeLifting/6
+    - CollaborativeLifting/7
+    - CollaborativeLifting/8
+    - CollaborativeLifting/9
+    - CollaborativeLifting/10
+  # 增加人类动画频率以获得更平滑的数据
+  human_animation_freq: 30
+  # 增加动画采样频率
+  n_animations_sampled_per_100_steps: 0.5
+  # 木板尺寸
+  board_full_size: [1.0, 0.4, 0.03]
+  # 无头模式设置，提高数据生成效率
+  has_renderer: false
+  has_offscreen_renderer: false
+  use_camera_obs: false
+  use_object_obs: true
+
+# 运行配置
+run:
+  # 观察键 - 确保包含SAC训练需要的所有观察
+  obs_keys:
+    - robot0_eef_pos
+    - robot0_gripper_qpos
+    - robot0_gripper_qvel
+    - vec_eef_to_human_head
+    - vec_eef_to_human_lh
+    - vec_eef_to_human_rh
+    - board_quat
+    - board_balance
+    - board_gripped
+    - dist_eef_to_human_head
+  # 专家观察键
+  expert_obs_keys:
+    - vec_eef_to_human_lh
+    - vec_eef_to_human_rh
+    - board_quat
+    - board_gripped
+  # 记录的信息键
+  log_info_keys:
+    - n_goal_reached
+
+# 包装器配置
+wrappers:
+  ik_position_delta:
+    action_limit: 0.1
+  visualization: null  # 禁用可视化包装器
+
+# 专家配置 - 针对SAC数据集生成优化
+expert:
+  signal_to_noise_ratio: 0.95  # 增加一些噪声以提高数据多样性
+  board_size: ${environment.board_full_size}
+  human_grip_offset: 0.1
+  delta_time: 0.01
+  seed: null
+
+# 数据集配置
+dataset_name: collaborative-lifting-sac-350
+start_episode_index: 0
+n_episodes: 350  # 生成350个episode
+n_threads: 4  # 使用4个线程加速数据生成
+load_episode_index: null

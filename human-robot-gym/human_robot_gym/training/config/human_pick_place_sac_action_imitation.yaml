@@ -1,0 +1,38 @@
+defaults:
+  - robot: schunk
+  - environment: pick_place_human_cart
+  - wrappers: safe_ik_action_imitation
+  - algorithm: sac
+  - expert: pick_place_human_cart
+  - run: expert_imitation_training
+  - wandb_run: default_wandb
+  - _self_
+  - consistent_seeding
+#  - eval
+
+run:
+  type: wandb
+  n_envs: 8
+  obs_keys:
+    - object_gripped
+    - vec_eef_to_object
+    - vec_eef_to_target
+    - gripper_aperture
+    - dist_eef_to_human_head
+    - dist_eef_to_human_lh
+    - dist_eef_to_human_rh
+  log_interval:
+    - 5000
+    - step
+wrappers:
+  ik_position_delta:
+    action_limit: 0.1
+  action_based_expert_imitation_reward:
+    alpha: 0.1
+    beta: 0.5
+    iota_m: 0.05
+    iota_g: 0.1
+    dataset_name: pick-place-dataset
+    rsi_prob: 1
+expert:
+  seed: ${run.seed}

@@ -1,0 +1,65 @@
+env_id: HumanEnv
+robot_base_offset: null
+env_configuration: default
+controller_configs: null
+gripper_types: default
+initialization_noise: default
+use_camera_obs: true
+use_object_obs: true
+reward_scale: 1.0
+reward_shaping: false
+collision_reward: -10
+task_reward: 1
+done_at_success: false
+done_at_collision: false
+has_renderer: false
+has_offscreen_renderer: true
+render_camera: frontview
+render_collision_mesh: false
+render_visual_mesh: true
+render_gpu_device_id: -1
+control_freq: 10
+horizon: 1000
+ignore_done: false
+hard_reset: true
+camera_names: frontview
+camera_heights: 256
+camera_widths: 256
+camera_depths: false
+camera_segmentations: null
+renderer: mujoco
+renderer_config: null
+shield_type: SSM
+visualize_failsafe_controller: false
+visualize_pinocchio: false
+control_sample_time: 0.004
+human_animation_names:
+  - CMU/62_01
+  - CMU/62_03
+  - CMU/62_04
+  - CMU/62_07
+  - CMU/62_09
+  - CMU/62_10
+  - CMU/62_12
+  - CMU/62_13
+  - CMU/62_14
+  - CMU/62_15
+  - CMU/62_16
+  - CMU/62_18
+  - CMU/62_19
+  - CMU/62_20
+base_human_pos_offset:
+  - 0.0
+  - 0.0
+  - 0.0
+human_animation_freq: 120
+human_rand:
+  - 0.0
+  - 0.0
+  - 0.0
+n_animations_sampled_per_100_steps: 5
+safe_vel: 0.001
+self_collision_safety: 0.01
+collision_debounce_delay: 0.01
+seed: 0
+verbose: false

@@ -1,0 +1,4 @@
+environment:
+  seed: ${run.seed}
+algorithm:
+  seed: ${run.seed}
